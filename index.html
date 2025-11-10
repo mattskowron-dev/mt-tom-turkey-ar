@@ -15,8 +15,9 @@
 <body>
     <a-scene
         vr-mode-ui="enabled: false"
-        arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: false;"
-        renderer="logarithmicDepthBuffer: true;">
+        arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: true;" <!-- Changed to true for debug logs -->
+        renderer="logarithmicDepthBuffer: true;"
+        loading-screen="dotsColor: white; backgroundColor: blue;"> <!-- Added loading screen for better feedback -->
         
         <!-- Camera with GPS tracking -->
         <a-camera gps-new-camera="gpsMinDistance: 5;" rotation-reader></a-camera>
