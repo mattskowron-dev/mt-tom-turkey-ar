@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Mt. Tom Turkey AR</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- A-Frame library -->
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+    <!-- AR.js library (includes location-based AR) -->
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
+    <!-- Look-at component for facing the viewer -->
+    <script src="https://unpkg.com/aframe-look-at-component@1.0.0/dist/aframe-look-at-component.min.js"></script>
+</head>
+<body>
+    <a-scene
+        vr-mode-ui="enabled: false"
+        arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: false;"
+        renderer="logarithmicDepthBuffer: true;">
+        
+        <!-- Camera with GPS tracking -->
+        <a-camera gps-new-camera="gpsMinDistance: 5;" rotation-reader></a-camera>
+        
+        <!-- Geo-anchored turkey entity (stationary by default, faces viewer) -->
+        <a-entity
+            id="turkey"
+            gps-new-entity-place="latitude: 42.24158; longitude: -72.64839;"
+            scale="500 500 500" <!-- Initial fallback scale -->
+            position="0 200 0" <!-- Hover height in meters -->
+            look-at="[gps-new-camera]"> <!-- Faces the viewer -->
+            <a-gltf-model src="./turkey.glb"></a-gltf-model> <!-- Relative path to your GLB -->
+        </a-entity>
+        
+        <!-- Audio -->
+        <a-sound src="./music.mp3" autoplay="true" loop="true" volume="1"></a-sound> <!-- Relative path to your MP3 -->
+    </a-scene>
+
+    <!-- Script for dynamic scaling based on distance -->
+    <script>
+        const scene = document.querySelector('a-scene');
+        scene.addEventListener('loaded', function() {
+            scene.addEventListener('gps-camera-update-position', function(evt) {
+                const entity = document.querySelector('#turkey');
+                const gpsComponent = entity.components['gps-new-entity-place'];
+                
+                if (gpsComponent && gpsComponent.distance) {
+                    const distance = gpsComponent.distance; // In meters
+                    const scaleFactor = distance / 1000; // Tune: smaller divisor = larger size
+                    entity.setAttribute('scale', `${scaleFactor} ${scaleFactor} ${scaleFactor}`);
+                    
+                    // Optional: Fade opacity if far (uncomment to enable)
+                    // entity.object3D.traverse(function(child) {
+                    // if (child.material) {
+                    // child.material.opacity = Math.max(0.1, 20000 / distance);
+                    // child.material.transparent = true;
+                    // }
+                    // });
+                }
+            });
+            
+            // Hardening: Log errors for debugging
+            scene.addEventListener('gps-camera-error', function(evt) {
+                console.error('GPS Camera Error:', evt.detail);
+            });
+        });
+    </script>
+</body>
+</html>
