@@ -15,9 +15,15 @@
 <body>
     <a-scene
         vr-mode-ui="enabled: false"
-        arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: true;" <!-- Changed to true for debug logs -->
+        arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: true;"
         renderer="logarithmicDepthBuffer: true;"
-        loading-screen="dotsColor: white; backgroundColor: blue;"> <!-- Added loading screen for better feedback -->
+        loading-screen="dotsColor: white; backgroundColor: blue;">
+        
+        <!-- Preload assets with timeout to prevent stuck loading -->
+        <a-assets timeout="10000">
+            <a-asset-item id="turkey-model" src="./turkey.glb"></a-asset-item>
+            <audio id="music-audio" src="./music.mp3"></audio>
+        </a-assets>
         
         <!-- Camera with GPS tracking -->
         <a-camera gps-new-camera="gpsMinDistance: 5;" rotation-reader></a-camera>
@@ -29,11 +35,11 @@
             scale="500 500 500" <!-- Initial fallback scale -->
             position="0 200 0" <!-- Hover height in meters -->
             look-at="[gps-new-camera]"> <!-- Faces the viewer -->
-            <a-gltf-model src="./turkey.glb"></a-gltf-model> <!-- Relative path to your GLB -->
+            <a-gltf-model src="#turkey-model"></a-gltf-model> <!-- Use preloaded asset -->
         </a-entity>
         
-        <!-- Audio -->
-        <a-sound src="./music.mp3" autoplay="true" loop="true" volume="1"></a-sound> <!-- Relative path to your MP3 -->
+        <!-- Audio using preloaded asset -->
+        <a-sound src="#music-audio" autoplay="true" loop="true" volume="1"></a-sound>
     </a-scene>
 
     <!-- Script for dynamic scaling based on distance -->
@@ -48,20 +54,20 @@
                     const distance = gpsComponent.distance; // In meters
                     const scaleFactor = distance / 1000; // Tune: smaller divisor = larger size
                     entity.setAttribute('scale', `${scaleFactor} ${scaleFactor} ${scaleFactor}`);
-                    
-                    // Optional: Fade opacity if far (uncomment to enable)
-                    // entity.object3D.traverse(function(child) {
-                    // if (child.material) {
-                    // child.material.opacity = Math.max(0.1, 20000 / distance);
-                    // child.material.transparent = true;
-                    // }
-                    // });
                 }
             });
             
-            // Hardening: Log errors for debugging
+            // Log errors for debugging
             scene.addEventListener('gps-camera-error', function(evt) {
                 console.error('GPS Camera Error:', evt.detail);
+            });
+            
+            // Log asset load errors
+            document.querySelector('#turkey-model').addEventListener('error', function(evt) {
+                console.error('GLB Load Error:', evt.detail);
+            });
+            document.querySelector('#music-audio').addEventListener('error', function(evt) {
+                console.error('Audio Load Error:', evt.detail);
             });
         });
     </script>
