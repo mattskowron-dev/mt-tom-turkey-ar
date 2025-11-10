@@ -19,7 +19,7 @@
         renderer="logarithmicDepthBuffer: true;"
         loading-screen="dotsColor: white; backgroundColor: blue;">
         
-        <!-- Preload assets with timeout to prevent stuck loading -->
+        <!-- Preload assets with timeout for better loading handling -->
         <a-assets timeout="10000">
             <a-asset-item id="turkey-model" src="./turkey.glb"></a-asset-item>
             <audio id="music-audio" src="./music.mp3"></audio>
@@ -28,48 +28,73 @@
         <!-- Camera with GPS tracking -->
         <a-camera gps-new-camera="gpsMinDistance: 5;" rotation-reader></a-camera>
         
-        <!-- Geo-anchored turkey entity (stationary by default, faces viewer) -->
+        <!-- Geo-anchored turkey entity -->
         <a-entity
             id="turkey"
             gps-new-entity-place="latitude: 42.24158; longitude: -72.64839;"
-            scale="500 500 500" <!-- Initial fallback scale -->
-            position="0 200 0" <!-- Hover height in meters -->
-            look-at="[gps-new-camera]"> <!-- Faces the viewer -->
-            <a-gltf-model src="#turkey-model"></a-gltf-model> <!-- Use preloaded asset -->
+            scale="500 500 500"
+            position="0 200 0"
+            look-at="[gps-new-camera]">
+            <a-gltf-model src="#turkey-model"></a-gltf-model>
         </a-entity>
         
-        <!-- Audio using preloaded asset -->
+        <!-- Audio -->
         <a-sound src="#music-audio" autoplay="true" loop="true" volume="1"></a-sound>
+        
+        <!-- Debug text entity for on-screen messages -->
+        <a-text
+            value="Loading AR scene... Check console for errors."
+            position="0 0 -1"
+            scale="0.5 0.5 0.5"
+            color="white"></a-text>
     </a-scene>
 
-    <!-- Script for dynamic scaling based on distance -->
+    <!-- Script with additional logging -->
     <script>
         const scene = document.querySelector('a-scene');
+        const debugText = document.querySelector('a-text');
+        
         scene.addEventListener('loaded', function() {
-            scene.addEventListener('gps-camera-update-position', function(evt) {
-                const entity = document.querySelector('#turkey');
-                const gpsComponent = entity.components['gps-new-entity-place'];
-                
-                if (gpsComponent && gpsComponent.distance) {
-                    const distance = gpsComponent.distance; // In meters
-                    const scaleFactor = distance / 1000; // Tune: smaller divisor = larger size
-                    entity.setAttribute('scale', `${scaleFactor} ${scaleFactor} ${scaleFactor}`);
-                }
-            });
-            
-            // Log errors for debugging
-            scene.addEventListener('gps-camera-error', function(evt) {
-                console.error('GPS Camera Error:', evt.detail);
-            });
-            
-            // Log asset load errors
-            document.querySelector('#turkey-model').addEventListener('error', function(evt) {
-                console.error('GLB Load Error:', evt.detail);
-            });
-            document.querySelector('#music-audio').addEventListener('error', function(evt) {
-                console.error('Audio Load Error:', evt.detail);
-            });
+            console.log('Scene loaded');
+            if (debugText) debugText.setAttribute('value', 'Scene loaded - Waiting for GPS');
         });
+        
+        scene.addEventListener('gps-camera-update-position', function(evt) {
+            console.log('GPS position updated', evt.detail);
+            if (debugText) debugText.setAttribute('value', 'GPS updated - Check for turkey');
+        });
+        
+        scene.addEventListener('gps-camera-error', function(evt) {
+            console.error('GPS Camera Error:', evt.detail);
+            if (debugText) debugText.setAttribute('value', 'GPS Error: ' + evt.detail.message);
+        });
+        
+        // Log asset loads
+        document.querySelector('#turkey-model').addEventListener('loaded', function() {
+            console.log('GLB loaded');
+        });
+        document.querySelector('#turkey-model').addEventListener('error', function(evt) {
+            console.error('GLB Load Error:', evt.detail);
+            if (debugText) debugText.setAttribute('value', 'GLB Error: ' + evt.detail.message);
+        });
+        
+        document.querySelector('#music-audio').addEventListener('loadeddata', function() {
+            console.log('Audio loaded');
+        });
+        document.querySelector('#music-audio').addEventListener('error', function(evt) {
+            console.error('Audio Load Error:', evt.detail);
+            if (debugText) debugText.setAttribute('value', 'Audio Error: ' + evt.detail.message);
+        });
+        
+        // Timeout to detect stuck loading
+        setTimeout(function() {
+            if (scene.hasLoaded) {
+                console.log('Scene fully loaded after timeout');
+            } else {
+                console.error('Scene stuck loading after 10s');
+                if (debugText) debugText.setAttribute('value', 'Loading stuck - Check console');
+            }
+        }, 10000);
     </script>
 </body>
 </html>
